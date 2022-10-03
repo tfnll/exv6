@@ -15,6 +15,8 @@ r_mhartid()
 #define MSTATUS_MPP_U (0L << 11)
 #define MSTATUS_MIE (1L << 3)    // machine-mode interrupt enable.
 
+// Read the mstatus register. The Machine Status register (mstatus) keeps track
+// of and controls the hardware thread’s current operating state.
 static inline uint64
 r_mstatus()
 {
@@ -23,6 +25,7 @@ r_mstatus()
   return x;
 }
 
+// Write to the mstatus register.
 static inline void 
 w_mstatus(uint64 x)
 {
