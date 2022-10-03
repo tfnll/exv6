@@ -20,11 +20,39 @@ extern void timervec();
 void
 start()
 {
+  /*
+   * When this function is entered, the CPU is in machine mode. start()
+   * performs some basic configuration before switching the CPU to supervisor
+   * mode and jumping to main(). The mret instruction is used to switch to
+   * supervisor mode, and uses the machine registers to guide its execution.
+   *
+   * Some tasks that are performed below:
+   *	1) mret views the mstatus register to understand which mode it is
+   *       returning to. Therefore, the bitmasks indicating supervisor mode must
+   *	   written to the mstatus register.
+   *
+   *	2) To view where the CPU should jump to on mret, the Machine Exception
+   *	   Program Counter register (mepc) is viewed. Set the mepc register to
+   *	   point to main()'s address.
+   *
+   *	3) Disable virtual address translation in supervisor mode by writing 0
+   *	   into the page-table register satp.
+   *
+   *	4) Delegate all interrupts and exceptions to supervisor mode.
+   *
+   *	5) Give supervisor mode access to all of physical memory. The kernel
+   *	   is able to use the entire physical memory for its management needs.
+   *
+   *	6) Program the clock chip to generate timer interrupts.
+   *
+   *	7) Store the hardware thread's ID in it's tp register.
+   */
+
   // set M Previous Privilege mode to Supervisor, for mret.
   unsigned long x = r_mstatus();
-  x &= ~MSTATUS_MPP_MASK;
-  x |= MSTATUS_MPP_S;
-  w_mstatus(x);
+  x &= ~MSTATUS_MPP_MASK;	// Clear the previous privilege mode bit(s).
+  x |= MSTATUS_MPP_S;		// Set the MPP mode to supervisor.
+  w_mstatus(x);                // Write new MPP mode (supervisor) to mstatus.
 
   // set M Exception Program Counter to main, for mret.
   // requires gcc -mcmodel=medany
