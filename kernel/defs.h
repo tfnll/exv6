@@ -204,14 +204,3 @@ void lst_push(struct list*, void *);
 void *lst_pop(struct list*);
 void lst_print(struct list*);
 int lst_empty(struct list*);
-
-// extra files for lab net
-
-// net.c
-void            netinit(void);
-int             nettimer(void);
-
-// virtio_net.c
-void            virtio_net_init(void *);
-int             virtio_net_send(const void *data, int len);
-int             virtio_net_recv(void *data, int len);

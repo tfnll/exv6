@@ -1,6 +1,5 @@
 K=kernel
 U=user
-LWIP=lwip
 
 OBJS = \
   $K/entry.o \
@@ -32,38 +31,6 @@ OBJS = \
   $K/virtio_disk.o \
   $K/buddy.o \
   $K/list.o
-
-# uncomment for lab net
-#OBJS += \
-  $K/net.o \
-  $K/virtio_net.o \
-  $(LWIP)/core/init.o \
-  $(LWIP)/core/def.o \
-  $(LWIP)/core/dns.o \
-  $(LWIP)/core/inet_chksum.o \
-  $(LWIP)/core/ip.o \
-  $(LWIP)/core/mem.o \
-  $(LWIP)/core/memp.o \
-  $(LWIP)/core/netif.o \
-  $(LWIP)/core/pbuf.o \
-  $(LWIP)/core/raw.o \
-  $(LWIP)/core/stats.o \
-  $(LWIP)/core/sys.o \
-  $(LWIP)/core/tcp.o \
-  $(LWIP)/core/tcp_in.o \
-  $(LWIP)/core/tcp_out.o \
-  $(LWIP)/core/timeouts.o \
-  $(LWIP)/core/udp.o \
-  $(LWIP)/core/ipv4/autoip.o \
-  $(LWIP)/core/ipv4/dhcp.o \
-  $(LWIP)/core/ipv4/etharp.o \
-  $(LWIP)/core/ipv4/icmp.o \
-  $(LWIP)/core/ipv4/igmp.o \
-  $(LWIP)/core/ipv4/ip4_frag.o \
-  $(LWIP)/core/ipv4/ip4.o \
-  $(LWIP)/core/ipv4/ip4_addr.o \
-  $(LWIP)/api/err.o \
-  $(LWIP)/netif/ethernet.o \
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -105,7 +72,6 @@ ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]nopie'),)
 CFLAGS += -fno-pie -nopie
 endif
 
-CFLAGS += -I $K/lwip -I $(LWIP)/include
 
 LDFLAGS = -z max-page-size=4096
 
@@ -185,13 +151,10 @@ fs.img: mkfs/mkfs README user/xargstest.sh $(UPROGS)
 	mkfs/mkfs fs.img README user/xargstest.sh $(UPROGS)
 
 -include kernel/*.d user/*.d
--include lwip/api/*.d lwip/core/*.d lwip/core/ipv4/*.d lwip/netif/*.d
 
 clean:
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*/*.o */*.d */*.asm */*.sym \
-	$(LWIP)/*/*.o $(LWIP)/*/*.d \
-	$(LWIP)/*/*/*.o $(LWIP)/*/*/*.d \
 	$U/initcode $U/initcode.out $K/kernel fs.img \
 	mkfs/mkfs .gdbinit \
         $U/usys.S \
