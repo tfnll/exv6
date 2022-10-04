@@ -24,6 +24,7 @@ struct {
   uint64 nfree;
 } kmem;
 
+// Paging is not yet turned on. Initialize the physcial page allocator.
 void
 kinit()
 {
