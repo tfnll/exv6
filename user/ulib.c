@@ -134,3 +134,17 @@ memcpy(void *dst, const void *src, uint n)
 {
   return memmove(dst, src, n);
 }
+
+void
+strcat(char *s, const char *t)
+{
+	char *sp;
+	const char *tp;
+
+	for (sp = s; *sp != '\0'; sp++);
+
+	for (tp = t; *tp != '\0'; tp++, sp++)
+		*sp = *tp;
+
+	*sp = 0;
+}
