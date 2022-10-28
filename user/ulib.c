@@ -148,3 +148,35 @@ strcat(char *s, const char *t)
 
 	*sp = 0;
 }
+
+char *
+strtok(char *str, const char *delim)
+{
+	static char *ptr = 0;
+	char *start, *end;
+
+	if (!str && !ptr)
+		return 0;
+
+	if (str)
+		ptr = str;
+	if (!ptr)
+		return 0;
+
+	start = end = ptr;
+
+	while (*end != '\0' && *end != *delim) {
+		end++;
+	}
+
+	if (*end == '\0') {
+		ptr = 0;
+		return start;
+	}
+
+	*end = '\0';
+
+	ptr = end + 1;
+
+	return start;
+}

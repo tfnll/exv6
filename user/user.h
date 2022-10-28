@@ -45,3 +45,4 @@ int atoi(const char*);
 int memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);
 void strcat(char *, const char *);
+char *strtok(char *, const char *);
