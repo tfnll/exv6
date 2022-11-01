@@ -149,6 +149,7 @@ UPROGS=\
 	$U/_pingpong\
 	$U/_primes\
 	$U/_find\
+	$U/_uptime\
 	# $U/_symlinktest\
 
 fs.img: mkfs/mkfs README user/xargstest.sh $(UPROGS)
