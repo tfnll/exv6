@@ -185,7 +185,24 @@ void            virtio_disk_intr(void);
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
 
-// extra files for lab alloc
+// slab_alloc.c
+/*
+ * To simplify, set the size of one slab to always be one page.
+ */
+#define SLAB_LIM 4096
+
+struct kmem_cache {
+	int align;
+	void *slab;
+	uint size;
+	uint len;
+	struct kmem_cache *prev;
+	struct kmem_cache *next;
+};
+
+int kmem_cache_create(struct kmem_cache **, int);
+void *kmem_cache_alloc(struct kmem_cache *, int);
+void kmem_cache_free(struct kmem_cache **, void *);
 
 // buddy.c
 void           bd_init(void*,void*);
