@@ -1,3 +1,4 @@
 grade*
 batch-*
 stacktrace
+*.sh
