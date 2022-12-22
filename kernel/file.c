@@ -16,12 +16,14 @@
 struct devsw devsw[NDEV];
 struct {
   struct spinlock lock;
-  struct file file[NFILE];
+  struct kmem_cache *fc;
 } ftable;
 
 void
 fileinit(void)
 {
+  kmem_cache_create(&ftable.fc, sizeof(struct file));
+
   initlock(&ftable.lock, "ftable");
 }
 
@@ -32,15 +34,19 @@ filealloc(void)
   struct file *f;
 
   acquire(&ftable.lock);
-  for(f = ftable.file; f < ftable.file + NFILE; f++){
-    if(f->ref == 0){
-      f->ref = 1;
-      release(&ftable.lock);
-      return f;
-    }
+
+  f = (struct file *) kmem_cache_alloc(ftable.fc, 0);
+  if (!f) {
+    release(&ftable.lock);
+    return 0;
   }
+
+  memset((void *) f, 0, sizeof(f));
+  f->ref = 1;
+
   release(&ftable.lock);
-  return 0;
+
+  return f;
 }
 
 // Increment ref count for file f.
@@ -62,20 +68,26 @@ fileclose(struct file *f)
   struct file ff;
 
   acquire(&ftable.lock);
+
   if(f->ref < 1)
     panic("fileclose");
-  if(--f->ref > 0){
+
+  f->ref--;
+
+  if (f->ref > 0) {
     release(&ftable.lock);
     return;
   }
+
   ff = *f;
-  f->ref = 0;
-  f->type = FD_NONE;
+
+  kmem_cache_free(&ftable.fc, (void *) f);
+
   release(&ftable.lock);
 
   if(ff.type == FD_PIPE){
     pipeclose(ff.pipe, ff.writable);
-  } else if(ff.type == FD_INODE || ff.type == FD_DEVICE){
+  } else if(ff.type == FD_INODE || ff.type == FD_DEVICE) {
     begin_op();
     iput(ff.ip);
     end_op();
