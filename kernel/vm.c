@@ -6,6 +6,11 @@
 #include "defs.h"
 #include "fs.h"
 
+#define NUM_PTE 512
+
+static void vmprint_helper(pagetable_t, int);
+static void vmprint_pte(pte_t, int, int);
+
 /*
  * the kernel's page table.
  */
@@ -427,4 +432,49 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+// Print the contents of a given page table.
+void
+vmprint(pagetable_t table)
+{
+	printf("page table (address: %p)\n", table);
+	vmprint_helper(table, 0);
+}
+
+static void
+vmprint_helper(pagetable_t pagetable, int level)
+{
+	pte_t pte;
+	uint64 child;
+	int is_valid, is_table;
+
+	for (int i = 0; i < NUM_PTE; i++) {
+		pte = pagetable[i];
+
+		is_valid = pte & PTE_V;
+
+		if (is_valid) {
+			vmprint_pte(pte, i, level + 1);
+
+			is_table = (pte & (PTE_R | PTE_W | PTE_X)) == 0;
+
+			if (is_table) {
+				child = PTE2PA(pte);
+				vmprint_helper((pagetable_t) child, level + 1);
+			}
+		}
+	}
+}
+
+/*
+ * Print the contents of a PTE in the vmprint() format.
+ */
+static void
+vmprint_pte(pte_t entry, int count, int level)
+{
+	for (int i = 0; i < level; i++)
+		printf(" ..");
+
+	printf("%d: pte %p pa %p\n", count, entry, PTE2PA(entry));
 }
