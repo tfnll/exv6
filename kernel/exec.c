@@ -116,6 +116,13 @@ exec(char *path, char **argv)
   p->trapframe->sp = sp; // initial stack pointer
   proc_freepagetable(oldpagetable, oldsz);
 
+  /*
+   * For init process, we'd like to print the initial page table contents.
+   *
+   */
+  if (strncmp(path, "/init", 5) == 0)
+	vmprint(p->pagetable);
+
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
  bad:
