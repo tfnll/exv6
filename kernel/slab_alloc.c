@@ -61,7 +61,7 @@ kmem_cache_create(struct kmem_cache **cp, int align)
 	 * Current caches only allocate 1 page for their slabs, so any object
 	 * sizes larger than that are not currently allowed.
 	 */
-	if (align < 0 || align > SLAB_LIM)
+	if (align <= 0 || align > SLAB_LIM)
 		return 0;
 
 	/*
