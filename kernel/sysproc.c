@@ -58,6 +58,13 @@ sys_sbrk(void)
 
   p->sz += n;
 
+  /*
+   * Decrease the size of the process if a negative argument is given
+   * (indicating that the process would like to shrink it's size).
+   */
+  if (n < 0)
+	uvmdealloc(p->pagetable, old, p->sz);
+
   return old;
 }
 

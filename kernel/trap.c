@@ -40,7 +40,7 @@ void
 usertrap(void)
 {
   int which_dev = 0;
-  uint64 cause;
+  uint64 cause, fault_va;
   struct proc *p;
 
   if((r_sstatus() & SSTATUS_SPP) != 0)
@@ -74,6 +74,15 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
+  } else if (cause == 13 || cause == 15) {
+	/*
+	 * Page fault. Examine Supervisor Trap Value (stval) register, which
+	 * indicates the faulting virtual address. Handle the page fault at this
+	 * address.
+	 */
+	fault_va = r_stval();
+	if (uvm_handle_page_fault(p, fault_va) < 0)
+		p->killed = 1;
   } else {
     printf("usertrap(): unexpected scause %p (%s) pid=%d\n", cause, scause_desc(cause), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
