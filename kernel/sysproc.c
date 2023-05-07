@@ -41,15 +41,24 @@ sys_wait(void)
 uint64
 sys_sbrk(void)
 {
-  int addr;
   int n;
+  struct proc *p;
+  uint64 old;
 
   if(argint(0, &n) < 0)
     return -1;
-  addr = myproc()->sz;
-  if(growproc(n) < 0)
-    return -1;
-  return addr;
+
+  /*
+   * For lazy page allocation, we won't allocate any memory now, but instead
+   * increase the process's memory size ("tricking" the process into being
+   * convinced that the memory was allocated) and return the "old" memory size.
+   */
+  p = myproc();
+  old = p->sz;
+
+  p->sz += n;
+
+  return old;
 }
 
 uint64
