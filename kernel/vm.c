@@ -182,7 +182,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 size, int do_free)
       panic("uvmunmap: not a leaf");
     if(do_free){
       pa = PTE2PA(*pte);
-      kfree((void*)pa);
+      kalloc_refcnt_dec((void*)pa);
     }
     *pte = 0;
 next:
@@ -241,7 +241,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     }
     memset(mem, 0, PGSIZE);
     if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
-      kfree(mem);
+      kalloc_refcnt_dec(mem);
       uvmdealloc(pagetable, a, oldsz);
       return 0;
     }
@@ -283,7 +283,7 @@ freewalk(pagetable_t pagetable)
       panic("freewalk: leaf");
     }
   }
-  kfree((void*)pagetable);
+  kalloc_refcnt_dec((void*)pagetable);
 }
 
 // Free user memory pages,
@@ -306,7 +306,6 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 	pte_t *pte;
 	uint64 pa, i;
 	uint flags;
-	char *mem;
 
 	for (i = 0; i < sz; i += PGSIZE){
 		if ((pte = walk(old, i, 0)) == 0)
@@ -318,14 +317,39 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 		pa = PTE2PA(*pte);
 		flags = PTE_FLAGS(*pte);
 
-		if ((mem = kalloc()) == 0)
+		/*
+		 * For copy-on-write pages:
+		 *
+		 * 1) Writing should be disallowed, as there will be a page
+		 *    fault when a process tries to write to the page (which the
+		 *    kernel can then use the make a copy of the page).
+		 *
+		 * 2) The PTE_C bit should be set, as the kernel will be able to
+		 *    distinguish a copy-on-write page from a page that just
+		 *    shouldn't be written to (such as a code page).
+		 */
+		flags &= ~PTE_W;
+		flags |= PTE_C;
+
+		/*
+		 * Map the "old" page table's underlying physical page to the
+		 * "new" page table (in essence, these two page tables will now.
+		 * share their underlying physical memory).
+		 */
+		if (mappages(new, i, PGSIZE, (uint64) pa, flags) != 0)
 			goto err;
 
-		memmove(mem, (char*)pa, PGSIZE);
-		if (mappages(new, i, PGSIZE, (uint64)mem, flags) != 0) {
-			kfree(mem);
+		/*
+		 * Remap this page back to the "old" page table, but with new
+		 * PTE permissions indicating that the page is now
+		 * copy-on-write.
+		 */
+		uvmunmap(old, i, PGSIZE, 0);
+
+		if (mappages(old, i, PGSIZE, (uint64) pa, flags) != 0)
 			goto err;
-		}
+
+		kalloc_refcnt_add((void *) pa);
 	}
 
 	return 0;
@@ -356,7 +380,7 @@ uvmclear(pagetable_t pagetable, uint64 va)
 int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
-	int ret, flags;
+	int ret, flags, valid, writable, cow;
 	uint64 n, va0, pa0;
 	pte_t *pte;
 	void *phys;
@@ -377,14 +401,42 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 			ret = mappages(pagetable, va0, PGSIZE, (uint64) phys,
 				flags);
 			if (ret < 0) {
-				kfree(phys);
+				kalloc_refcnt_dec(phys);
 				return -1;
 			}
 
 			pa0 = (uint64) phys;
-		} else
+		} else {
 			pa0 = walkaddr(pagetable, va0);
 
+			flags = PTE_FLAGS(*pte);
+			valid = flags & PTE_V;
+			writable = flags & PTE_W;
+			cow = flags & PTE_C;
+			if (valid && !writable && cow) {
+				phys = kalloc();
+				if (phys == 0)
+					goto end;
+
+				flags |= PTE_W;
+				flags &= ~PTE_C;
+
+				memmove(phys, (void *) pa0, PGSIZE);
+
+				uvmunmap(pagetable, va0, PGSIZE, 1);
+
+				ret = mappages(pagetable, va0, PGSIZE,
+					(uint64) phys, flags);
+				if (ret < 0) {
+					kalloc_refcnt_dec((void *) phys);
+					return -1;
+				}
+
+				pa0 = (uint64) phys;
+			}
+		}
+
+end:
 		n = PGSIZE - (dstva - va0);
 		if (n > len)
 			n = len;
@@ -428,7 +480,7 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 			ret = mappages(pagetable, va0, PGSIZE, (uint64) phys,
 				flags);
 			if (ret < 0) {
-				kfree(phys);
+				kalloc_refcnt_dec(phys);
 				return -1;
 			}
 
@@ -547,7 +599,7 @@ vmprint_pte(pte_t entry, int count, int level)
 int
 uvm_handle_page_fault(struct proc *p, uint64 fault_va)
 {
-	int ret, perms, guard;
+	int ret, perms, guard, valid, cow, writable;
 	void *phys_pg;
 	uint64 vm_pg;
 	pte_t *pte;
@@ -582,6 +634,37 @@ uvm_handle_page_fault(struct proc *p, uint64 fault_va)
 			 */
 			return -1;
 		}
+
+		valid = *pte & PTE_V;
+		writable = *pte & PTE_W;
+		cow = *pte & PTE_C;
+		if (valid && !writable && cow) {
+			/*
+			 * Copy-on-write page, create another copy of the
+			 * physical memory and map that page frame into the
+			 * original page frame's place.
+			 */
+			phys_pg = kalloc();
+			if (phys_pg == 0)
+				return -1;
+
+			memmove(phys_pg, (void *) PTE2PA(*pte), PGSIZE);
+
+			perms = PTE_FLAGS(*pte);
+			perms |= PTE_W;
+			perms &= ~PTE_C;
+
+			uvmunmap(p->pagetable, vm_pg, PGSIZE, 1);
+
+			ret = mappages(p->pagetable, vm_pg, PGSIZE,
+				(uint64) phys_pg, perms);
+			if (ret < 0) {
+				kalloc_refcnt_dec(phys_pg);
+				return -1;
+			}
+
+			return 0;
+		}
 	}
 
 	/*
@@ -602,7 +685,7 @@ uvm_handle_page_fault(struct proc *p, uint64 fault_va)
 	 */
 	ret = mappages(p->pagetable, vm_pg, PGSIZE, (uint64) phys_pg, perms);
 	if (ret != 0) {
-		kfree(phys_pg);
+		kalloc_refcnt_dec(phys_pg);
 		return -1;
 	}
 

@@ -10,6 +10,7 @@
 #include "defs.h"
 
 void freerange(void *pa_start, void *pa_end);
+static uint kalloc_refcnt_idx(void *);
 
 extern char end[]; // first address after kernel.
                    // defined by kernel.ld.
@@ -22,6 +23,7 @@ struct {
   struct spinlock lock;
   struct run *freelist;
   uint64 nfree;
+  uint refcnt[(PHYSTOP - KERNBASE) / PGSIZE];
 } kmem;
 
 // Paging is not yet turned on. Initialize the physcial page allocator.
@@ -81,8 +83,10 @@ kalloc(void)
   }
   release(&kmem.lock);
 
-  if(r)
+  if(r) {
     memset((char*)r, 5, PGSIZE); // fill with junk
+    kalloc_refcnt_add(r);
+  }
   return (void*)r;
 }
 
@@ -90,4 +94,56 @@ uint64
 sys_nfree(void)
 {
   return kmem.nfree;
+}
+
+static uint
+kalloc_refcnt_idx(void *pa)
+{
+	uint idx;
+	uint64 begin, last;
+
+	if ((char *) pa < end)
+		return -1;
+
+	begin = PGROUNDDOWN((uint64) pa);
+	last = PGROUNDUP((uint64) end);
+
+	idx = (begin - last) / PGSIZE;
+
+	return idx;
+}
+
+void
+kalloc_refcnt_add(void *pa)
+{
+	uint idx;
+
+	idx = kalloc_refcnt_idx(pa);
+	if (idx < 0)
+		return;
+
+	acquire(&kmem.lock);
+	kmem.refcnt[idx]++;
+	release(&kmem.lock);
+}
+
+void
+kalloc_refcnt_dec(void *pa)
+{
+	uint idx;
+
+	idx = kalloc_refcnt_idx(pa);
+	if (idx < 0)
+		return;
+
+	if (kmem.refcnt[idx] == 0)
+		panic("kalloc_refcnt_dec");
+
+	acquire(&kmem.lock);
+	kmem.refcnt[idx]--;
+	if (kmem.refcnt[idx] == 0) {
+		release(&kmem.lock);
+		kfree(pa);
+	} else
+		release(&kmem.lock);
 }

@@ -193,7 +193,7 @@ kmem_cache_free(struct kmem_cache **cp, void *obj)
 		 * KMEM_CACHES.
 		 */
 		if (cache->size < 0) {
-			kfree(cache->slab);
+			kalloc_refcnt_dec(cache->slab);
 			KMEM_CACHES_FREE(cache);
 
 			/*
