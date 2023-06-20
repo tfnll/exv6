@@ -392,6 +392,11 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 
 		pte = walk(pagetable, va0, 0);
 		if (pte == 0) {
+			/*
+			 * The user VM page that the kernel is writing to is not
+			 * yet mapped (i.e. it's a page that should be
+			 * lazy-allocated).
+			 */
 			phys = kalloc();
 			if (phys == 0)
 				return -1;
@@ -409,6 +414,12 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 		} else {
 			pa0 = walkaddr(pagetable, va0);
 
+			/*
+			 * The PTE exists for this user VM page. Check whether
+			 * it's a copy-on-write page. If so, allocate a new page
+			 * frame and copy the contents of the original shared
+			 * page frame to it.
+			 */
 			flags = PTE_FLAGS(*pte);
 			valid = flags & PTE_V;
 			writable = flags & PTE_W;
@@ -418,9 +429,19 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 				if (phys == 0)
 					goto end;
 
+				/*
+				 * The new page will no longer be copy-on-write.
+				 * Allow for writing and disable the
+				 * copy-on-write identifier.
+				 */
 				flags |= PTE_W;
 				flags &= ~PTE_C;
 
+				/*
+				 * Copy the contents of the shared page frame to
+				 * the new private page frame and swap the two
+				 * in the page table.
+				 */
 				memmove(phys, (void *) pa0, PGSIZE);
 
 				uvmunmap(pagetable, va0, PGSIZE, 1);
@@ -471,6 +492,11 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
 
 		pte = walk(pagetable, va0, 0);
 		if (pte == 0) {
+			/*
+			 * The user VM page that the kernel is writing to is not
+			 * yet mapped (i.e. it's a page that should be
+			 * lazy-allocated).
+			 */
 			phys = kalloc();
 			if (phys == 0)
 				return -1;
@@ -620,10 +646,14 @@ uvm_handle_page_fault(struct proc *p, uint64 fault_va)
 
 	/*
 	 * Get the PTE of the virtual memory page and check it's not the
-	 * process's stack guard page (i.e. PTE_V && !PTE_U).
+	 * process's stack guard page (i.e. PTE_V && !PTE_U) or a copy-on-write
+	 * page.
 	 */
 	pte = walk(p->pagetable, vm_pg, 0);
 	if (pte != 0) {
+		/*
+		 * Check if the page is the stack guard page.
+		 */
 		guard = *pte & PTE_V;
 		guard &= !(*pte & PTE_U);
 
@@ -635,25 +665,33 @@ uvm_handle_page_fault(struct proc *p, uint64 fault_va)
 			return -1;
 		}
 
+		/*
+		 * Check if the page is a copy-on-write page. If it is, allocate
+		 * a new page frame and map it in the place of the copy-on-write
+		 * page.
+		 */
 		valid = *pte & PTE_V;
 		writable = *pte & PTE_W;
 		cow = *pte & PTE_C;
 		if (valid && !writable && cow) {
-			/*
-			 * Copy-on-write page, create another copy of the
-			 * physical memory and map that page frame into the
-			 * original page frame's place.
-			 */
 			phys_pg = kalloc();
 			if (phys_pg == 0)
 				return -1;
 
 			memmove(phys_pg, (void *) PTE2PA(*pte), PGSIZE);
 
+			/*
+			 * The page is no longer copy-on-write. Enable writing
+			 * and disable the COW identifier.
+			 */
 			perms = PTE_FLAGS(*pte);
 			perms |= PTE_W;
 			perms &= ~PTE_C;
 
+			/*
+			 * Swap the shared page frame with the new, "owned" page
+			 * frame.
+			 */
 			uvmunmap(p->pagetable, vm_pg, PGSIZE, 1);
 
 			ret = mappages(p->pagetable, vm_pg, PGSIZE,
@@ -668,7 +706,9 @@ uvm_handle_page_fault(struct proc *p, uint64 fault_va)
 	}
 
 	/*
-	 * Allocate page of physical memory and zero it.
+	 * There is no PTE mapping for this virtual memory address (i.e. it is
+	 * to be lazy-allocated and mapped). Allocate a page of physical memory
+	 * and zero it.
 	 */
 	phys_pg = kalloc();
 	if (phys_pg == 0)
