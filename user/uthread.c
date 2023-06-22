@@ -10,10 +10,33 @@
 #define STACK_SIZE  8192
 #define MAX_THREAD  4
 
-struct thread {
-  char       stack[STACK_SIZE]; /* the thread's stack */
-  int        state;             /* FREE, RUNNING, RUNNABLE */
+/*
+ * User thread register context.
+ */
+struct reg_ctx {
+	uint64 ra;
+	uint64 sp;
+
+	uint64 s0;
+	uint64 s1;
+	uint64 s2;
+	uint64 s3;
+	uint64 s4;
+	uint64 s5;
+	uint64 s6;
+	uint64 s7;
+	uint64 s8;
+	uint64 s9;
+	uint64 s10;
+	uint64 s11;
 };
+
+struct thread {
+	char	stack[STACK_SIZE];	/* the thread's stack */
+	int	state;			/* FREE, RUNNING, RUNNABLE */
+	struct	reg_ctx regs;		/* Caller/callee saved registers */
+};
+
 struct thread all_thread[MAX_THREAD];
 struct thread *current_thread;
 extern void thread_switch(uint64, uint64);
@@ -33,48 +56,72 @@ thread_init(void)
 void 
 thread_schedule(void)
 {
-  struct thread *t, *next_thread;
+	struct thread *t, *next_thread;
 
-  /* Find another runnable thread. */
-  next_thread = 0;
-  t = current_thread + 1;
-  for(int i = 0; i < MAX_THREAD; i++){
-    if(t >= all_thread + MAX_THREAD)
-      t = all_thread;
-    if(t->state == RUNNABLE) {
-      next_thread = t;
-      break;
-    }
-    t = t + 1;
-  }
+	/*
+	 * Find another runnable thread.
+	 */
+	next_thread = 0;
+	t = current_thread + 1;
 
-  if (next_thread == 0) {
-    printf("thread_schedule: no runnable threads\n");
-    exit(-1);
-  }
+	for (int i = 0; i < MAX_THREAD; i++) {
+		if (t >= all_thread + MAX_THREAD)
+			t = all_thread;
+		if (t->state == RUNNABLE) {
+			next_thread = t;
+			break;
+		}
 
-  if (current_thread != next_thread) {         /* switch threads?  */
-    next_thread->state = RUNNING;
-    t = current_thread;
-    current_thread = next_thread;
-    /* YOUR CODE HERE
-     * Invoke thread_switch to switch from t to next_thread:
-     * thread_switch(??, ??);
-     */
-  } else
-    next_thread = 0;
+		t = t + 1;
+	}
+
+	if (next_thread == 0) {
+		printf("thread_schedule: no runnable threads\n");
+		exit(-1);
+	}
+
+	if (current_thread != next_thread) { // switch threads?
+		next_thread->state = RUNNING;
+		t = current_thread;
+		current_thread = next_thread;
+
+		/*
+		 * To schedule a thread, only change the register contexts.
+		 */
+		thread_switch((uint64) &t->regs, (uint64) &next_thread->regs);
+	} else
+		next_thread = 0;
 }
 
 void 
 thread_create(void (*func)())
 {
-  struct thread *t;
+	struct thread *t;
 
-  for (t = all_thread; t < all_thread + MAX_THREAD; t++) {
-    if (t->state == FREE) break;
-  }
-  t->state = RUNNABLE;
-  // YOUR CODE HERE
+	for (t = all_thread; t < all_thread + MAX_THREAD; t++) {
+		if (t->state == FREE) break;
+	}
+
+	t->state = RUNNABLE;
+
+	/*
+	 * Erase the register context.
+	 */
+	memset(&t->regs, 0, sizeof(struct reg_ctx));
+
+	/*
+	 * Set the initial stack pointer to the "bottom" of the stack (i.e. the
+	 * highest address of the stack, since the stack grows down).
+	 */
+	t->regs.sp = (uint64) (t->stack + STACK_SIZE);
+
+	/*
+	 * When the thread is scheduled, it should start running instructions
+	 * pointed to by the func() argument. Set the return address to point
+	 * to this function, so when the "ret" instruction is called, the thread
+	 * will jump to the start of func().
+	 */
+	t->regs.ra = (uint64) func;
 }
 
 void 
