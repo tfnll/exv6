@@ -27,6 +27,8 @@ int sleep(int);
 int uptime(void);
 int ntas();
 int nfree();
+int sigalarm(int, void (*)());
+int sigreturn(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

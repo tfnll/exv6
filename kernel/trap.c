@@ -93,8 +93,43 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
+    /*
+     * If a valid sigalarm has been set and we're not already running in the
+     * sigalarm handler, update the number of sigalarm ticks and execute the
+     * handler if appropriate.
+     */
+    if (p->sigalarm_ticks > 0 && !p->alarm_in_handler) {
+		p->ticks_counter++;
+
+		/*
+		 * If the current amount sigalarm ticks matches the amount
+		 * required to run the handler, clear the "ticks counter" and
+		 * run the handler.
+		 */
+		if (p->ticks_counter == p->sigalarm_ticks) {
+			p->ticks_counter = 0;
+			/*
+			 * Save the current trapframe for the process to
+			 * continue executing in its current context when
+			 * sigreturn is called.
+			 */
+			memmove(p->alarm_tf, p->trapframe,
+				sizeof(struct trapframe));
+
+			/*
+			 * Set the PC to run the sigalarm function and indicate
+			 * that the process is currently executing in the
+			 * handler.
+			 */
+			p->trapframe->epc = p->sigalarm_fn;
+			p->alarm_in_handler = 1;
+		} else
+			goto yield;
+    }
+yield:
     yield();
+  }
 
   usertrapret();
 }

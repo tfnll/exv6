@@ -123,6 +123,14 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  /*
+   * There is no alarm information set. Clear the sigalarm(2) information.
+   */
+  p->sigalarm_ticks = 0;
+  p->sigalarm_fn = 0;
+  p->ticks_counter = 0;
+  p->alarm_in_handler = 0;
+
   return p;
 }
 

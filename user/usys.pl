@@ -38,3 +38,5 @@ entry("sleep");
 entry("uptime");
 entry("ntas");
 entry("nfree");
+entry("sigalarm");
+entry("sigreturn");

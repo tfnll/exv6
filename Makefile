@@ -31,7 +31,8 @@ OBJS = \
   $K/virtio_disk.o \
   $K/buddy.o \
   $K/list.o \
-  $K/slab_alloc.o
+  $K/slab_alloc.o \
+  $K/alarm.o
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -152,6 +153,7 @@ UPROGS=\
 	$U/_find\
 	$U/_uptime\
 	$U/_xargs\
+	$U/_alarmtest\
 	# $U/_symlinktest\
 
 fs.img: mkfs/mkfs README user/xargstest.sh $(UPROGS)
