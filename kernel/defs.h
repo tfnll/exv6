@@ -249,3 +249,9 @@ int	dev_uptime_write(struct file *, int, uint64, int);
 
 // dev/dev_main.c
 void	dev_special_init();
+
+// sysfile.c
+struct inode *create(char *, short, short, short);
+
+// string.c
+int atoi(const char *);

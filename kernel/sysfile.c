@@ -238,7 +238,7 @@ bad:
   return -1;
 }
 
-static struct inode*
+struct inode *
 create(char *path, short type, short major, short minor)
 {
   struct inode *ip, *dp;
@@ -254,6 +254,8 @@ create(char *path, short type, short major, short minor)
     ilock(ip);
     if(type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE))
       return ip;
+    if (type == T_SYMLINK)
+	return ip;
     iunlockput(ip);
     return 0;
   }
@@ -290,7 +292,7 @@ sys_open(void)
   int fd, omode;
   struct file *f;
   struct inode *ip;
-  int n;
+  int n, count, symlink_len;
 
   if((n = argstr(0, path, MAXPATH)) < 0 || argint(1, &omode) < 0)
     return -1;
@@ -314,6 +316,34 @@ sys_open(void)
       end_op();
       return -1;
     }
+  }
+
+  /*
+   * If the file to be opened is a symbolic link, follow the link until the
+   * referred file is reached.
+   */
+  if ((ip->type == T_SYMLINK) && !(omode & O_NOFOLLOW)) {
+	count = 0;
+	while (ip->type == T_SYMLINK) {
+		symlink_len = 0;
+		readi(ip, 0, (uint64) &symlink_len, 0, sizeof(int));
+		if (symlink_len > MAXPATH)
+			panic("open: corrupted symlink inode");
+
+		readi(ip, 0, (uint64) path, sizeof(int), symlink_len + 1);
+		iunlockput(ip);
+		if ((ip = namei(path)) == 0) {
+			end_op();
+			return -1;
+		}
+		ilock(ip);
+
+		if (++count > 10) {
+			iunlockput(ip);
+			end_op();
+			return -1;
+		}
+	}
   }
 
   if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){

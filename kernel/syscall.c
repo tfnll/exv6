@@ -108,6 +108,7 @@ extern uint64 sys_ntas(void);
 extern uint64 sys_nfree(void);
 extern uint64 sys_sigalarm(void);
 extern uint64 sys_sigreturn(void);
+extern uint64 sys_symlink(void);
 
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -135,6 +136,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_nfree]   sys_nfree,
 [SYS_sigalarm]   sys_sigalarm,
 [SYS_sigreturn]   sys_sigreturn,
+[SYS_symlink]	sys_symlink,
 };
 
 void

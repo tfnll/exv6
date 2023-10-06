@@ -40,3 +40,4 @@ entry("ntas");
 entry("nfree");
 entry("sigalarm");
 entry("sigreturn");
+entry("symlink");

@@ -26,3 +26,4 @@
 #define SYS_nfree  23
 #define SYS_sigalarm  24
 #define SYS_sigreturn  25
+#define SYS_symlink  26

@@ -37,7 +37,8 @@ OBJS = \
   $K/dev/dev_zero.o \
   $K/dev/dev_random.o \
   $K/dev/dev_uptime.o \
-  $K/dev/dev_main.o
+  $K/dev/dev_main.o \
+  $K/symlink.o
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
 #TOOLPREFIX =
@@ -158,7 +159,7 @@ UPROGS=\
 	$U/_uptime\
 	$U/_xargs\
 	$U/_alarmtest\
-	# $U/_symlinktest\
+	$U/_symlinktest\
 
 fs.img: mkfs/mkfs README user/xargstest.sh $(UPROGS)
 	mkfs/mkfs fs.img README user/xargstest.sh $(UPROGS)
