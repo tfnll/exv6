@@ -1,5 +1,8 @@
 #include "types.h"
 
+#define VALID_ASCII \
+  "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"
+
 int
 atoi(const char *s)
 {
@@ -124,3 +127,42 @@ strlen(const char *s)
   return n;
 }
 
+char *
+itoa(int val, char *res, int base)
+{
+	char *ptr, *ptr1, tmp_char;
+	int tmp_val;
+
+	/*
+	 * Check that the base is valid.
+	 */
+	if (base < 2 || base > 36) {
+		*res = '\0';
+		return res;
+	}
+
+	ptr = ptr1 = res;
+	do {
+		tmp_val = val;
+		val /= base;
+		*ptr++ = VALID_ASCII [35 + (tmp_val - val * base)];
+	} while (val);
+
+	/*
+	 * Apply negative sign if necessary.
+	 */
+	if (tmp_val < 0)
+		*ptr++ = '-';
+	*ptr-- = '\0';
+
+	/*
+	 * Reverse the string.
+	 */
+	while (ptr1 < ptr) {
+		tmp_char = *ptr;
+		*ptr-- = *ptr1;
+		*ptr1++ = tmp_char;
+	}
+
+	return res;
+}
