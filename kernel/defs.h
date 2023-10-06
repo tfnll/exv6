@@ -226,3 +226,26 @@ void lst_push(struct list*, void *);
 void *lst_pop(struct list*);
 void lst_print(struct list*);
 int lst_empty(struct list*);
+
+// dev/dev_null.c
+void	dev_null_init();
+int	dev_null_read(struct file *, int, uint64, int);
+int	dev_null_write(struct file *, int, uint64, int);
+
+// dev/dev_zero.c
+void	dev_zero_init();
+int	dev_zero_read(struct file *, int, uint64, int);
+int	dev_zero_write(struct file *, int, uint64, int);
+
+// dev/dev_random.c
+void	dev_random_init();
+int	dev_random_read(struct file *, int, uint64, int);
+int	dev_random_write(struct file *, int, uint64, int);
+
+// dev/dev_uptime.c
+void	dev_uptime_init();
+int	dev_uptime_read(struct file *, int, uint64, int);
+int	dev_uptime_write(struct file *, int, uint64, int);
+
+// dev/dev_main.c
+void	dev_special_init();

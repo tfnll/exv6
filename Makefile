@@ -32,8 +32,12 @@ OBJS = \
   $K/buddy.o \
   $K/list.o \
   $K/slab_alloc.o \
-  $K/alarm.o
-
+  $K/alarm.o \
+  $K/dev/dev_null.o \
+  $K/dev/dev_zero.o \
+  $K/dev/dev_random.o \
+  $K/dev/dev_uptime.o \
+  $K/dev/dev_main.o
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
 #TOOLPREFIX =
@@ -168,6 +172,7 @@ clean:
 	mkfs/mkfs .gdbinit \
         $U/usys.S \
 	$(UPROGS) \
+	*/dev/*.d */dev/*.o \
 	en0.pcap
 
 # try to generate a unique GDB port

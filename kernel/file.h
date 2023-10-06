@@ -38,5 +38,9 @@ struct devsw {
 
 extern struct devsw devsw[];
 
-#define DISK 0
-#define CONSOLE 1
+#define DISK 		0
+#define CONSOLE 	1
+#define SPECIAL_NULL 	2
+#define SPECIAL_ZERO 	3
+#define SPECIAL_RANDOM	4
+#define SPECIAL_UPTIME	5

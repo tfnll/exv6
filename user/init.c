@@ -5,6 +5,8 @@
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
+static int dev_files_init(void);
+
 char *argv[] = { "sh", 0 };
 
 int
@@ -18,6 +20,11 @@ main(void)
   }
   dup(0);  // stdout
   dup(0);  // stderr
+
+  if (dev_files_init() < 0) {
+	printf("init: Error creating special device files\n");
+	exit(1);
+  }
 
   for(;;){
     printf("init: starting sh\n");
@@ -47,4 +54,25 @@ main(void)
       }
     }
   }
+}
+
+static int
+dev_files_init(void)
+{
+	if (mkdir("/dev") != 0)
+		return -1;
+
+	if (mknod("/dev/null", 2, 0) != 0)
+		return -1;
+
+	if (mknod("/dev/zero", 3, 0) != 0)
+		return -1;
+
+	if (mknod("/dev/random", 4, 0) != 0)
+		return -1;
+
+	if (mknod("/dev/uptime", 5, 0) != 0)
+		return -1;
+
+	return 0;
 }
