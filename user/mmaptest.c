@@ -12,6 +12,12 @@ char buf[BSIZE];
 
 #define MAP_FAILED ((char *) -1)
 
+#define PROT_READ 0x1
+#define PROT_WRITE 0x10
+
+#define MAP_SHARED 0x1
+#define MAP_PRIVATE 0x10
+
 int
 main(int argc, char *argv[])
 {

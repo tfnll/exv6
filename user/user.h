@@ -30,6 +30,8 @@ int nfree();
 int sigalarm(int, void (*)());
 int sigreturn(void);
 int symlink(const char *, const char *);
+void *mmap(void *, size_t, int, int, int, offset_t);
+int munmap(void *, size_t);
 
 // ulib.c
 int stat(const char*, struct stat*);

@@ -160,6 +160,7 @@ UPROGS=\
 	$U/_xargs\
 	$U/_alarmtest\
 	$U/_symlinktest\
+	$U/_mmaptest\
 
 fs.img: mkfs/mkfs README user/xargstest.sh $(UPROGS)
 	mkfs/mkfs fs.img README user/xargstest.sh $(UPROGS)

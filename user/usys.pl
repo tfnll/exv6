@@ -41,3 +41,5 @@ entry("nfree");
 entry("sigalarm");
 entry("sigreturn");
 entry("symlink");
+entry("mmap");
+entry("munmap");
