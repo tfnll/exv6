@@ -34,6 +34,8 @@ int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
 
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
 // fs.c
 void            fsinit(int);
 int             dirlink(struct inode*, char*, uint);
