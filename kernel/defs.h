@@ -254,6 +254,7 @@ void	dev_special_init();
 
 // sysfile.c
 struct inode *create(char *, short, short, short);
+int argfd(int, int *, struct file **);
 
 // string.c
 int atoi(const char *);
