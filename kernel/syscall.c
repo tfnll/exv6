@@ -109,6 +109,8 @@ extern uint64 sys_nfree(void);
 extern uint64 sys_sigalarm(void);
 extern uint64 sys_sigreturn(void);
 extern uint64 sys_symlink(void);
+extern uint64 sys_mmap(void);
+extern uint64 sys_munmap(void);
 
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -137,6 +139,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_sigalarm]   sys_sigalarm,
 [SYS_sigreturn]   sys_sigreturn,
 [SYS_symlink]	sys_symlink,
+[SYS_mmap]	sys_mmap,
+[SYS_munmap]	sys_munmap,
 };
 
 void

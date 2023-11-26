@@ -258,3 +258,7 @@ int argfd(int, int *, struct file **);
 
 // string.c
 int atoi(const char *);
+
+// mmap.c
+struct mmap_info *mmap_info_get(struct proc *, uint64);
+int mmap_pagefault_handle(struct mmap_info *, uint64, void *);

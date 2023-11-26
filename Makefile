@@ -38,7 +38,8 @@ OBJS = \
   $K/dev/dev_random.o \
   $K/dev/dev_uptime.o \
   $K/dev/dev_main.o \
-  $K/symlink.o
+  $K/symlink.o	\
+  $K/mmap.o
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
 #TOOLPREFIX =

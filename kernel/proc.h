@@ -1,3 +1,5 @@
+#include "mmap.h"
+
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
@@ -110,4 +112,6 @@ struct proc {
   uint64 sigalarm_fn;
   struct trapframe *alarm_tf;
   int alarm_in_handler;
+
+  struct mmap_info mmap_regions[MMAP_INFO_MAX];
 };

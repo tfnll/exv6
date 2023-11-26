@@ -7,6 +7,7 @@
 #include "fs.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "mmap.h"
 
 #define NUM_PTE 512
 
@@ -629,6 +630,7 @@ uvm_handle_page_fault(struct proc *p, uint64 fault_va)
 	void *phys_pg;
 	uint64 vm_pg;
 	pte_t *pte;
+	struct mmap_info *info;
 
 	/*
 	 * If the faulting address is larger than the process address space's
@@ -714,6 +716,10 @@ uvm_handle_page_fault(struct proc *p, uint64 fault_va)
 	if (phys_pg == 0)
 		return -1;
 	memset(phys_pg, 0, PGSIZE);
+
+	info = mmap_info_get(p, vm_pg);
+	if (info)
+		return mmap_pagefault_handle(info, vm_pg, phys_pg);
 
 	/*
 	 * Set the permissions for the newly-allocated virtual page.
