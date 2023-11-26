@@ -125,7 +125,7 @@ kalloc(void)
   release(&cpu->lock);
 
   if(r) {
-    memset((char*)r, 5, PGSIZE); // fill with junk
+    memset((char*)r, 0, PGSIZE); // Zero-out the page frame.
     kalloc_refcnt_add(r);
   }
   return (void*)r;
