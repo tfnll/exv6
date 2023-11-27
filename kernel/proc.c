@@ -8,6 +8,7 @@
 #include "file.h"
 #include "proc.h"
 #include "defs.h"
+#include "mmap.h"
 
 struct cpu cpus[NCPU];
 
@@ -257,6 +258,7 @@ fork(void)
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
+  struct mmap_info *mm_p, *mm_np;
 
   // Allocate process.
   if((np = allocproc()) == 0){
@@ -286,6 +288,25 @@ fork(void)
   np->cwd = idup(p->cwd);
 
   safestrcpy(np->name, p->name, sizeof(p->name));
+
+  for (i = 0; i < MMAP_INFO_MAX; i++) {
+	mm_p = &p->mmap_regions[i];
+	mm_np = &np->mmap_regions[i];
+
+	if (mm_p->used) {
+		mm_np->p = np;
+
+		mm_np->vaddr = mm_p->vaddr;
+		mm_np->len = mm_p->len;
+		mm_np->prot = mm_p->prot;
+		mm_np->flags = mm_p->flags;
+		mm_np->file = mm_p->file;
+		mm_np->off = mm_p->off;
+		mm_np->num_pages = mm_p->num_pages;
+
+		mm_np->used = 1;
+	}
+  }
 
   pid = np->pid;
 
