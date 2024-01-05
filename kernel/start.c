@@ -20,6 +20,7 @@ extern void timervec();
 void
 start()
 {
+	unsigned long mstatus;
   /*
    * When this function is entered, the CPU is in machine mode. start()
    * performs some basic configuration before switching the CPU to supervisor
@@ -49,10 +50,10 @@ start()
    */
 
   // set M Previous Privilege mode to Supervisor, for mret.
-  unsigned long x = r_mstatus();
-  x &= ~MSTATUS_MPP_MASK;	// Clear the previous privilege mode bit(s).
-  x |= MSTATUS_MPP_S;		// Set the MPP mode to supervisor.
-  w_mstatus(x);                // Write new MPP mode (supervisor) to mstatus.
+  mstatus = r_mstatus();
+  mstatus &= ~MSTATUS_MPP_MASK;	// Clear the previous privilege mode bit(s).
+  mstatus |= MSTATUS_MPP_S;		// Set the MPP mode to supervisor.
+  w_mstatus(mstatus);                // Write new MPP mode (supervisor) to mstatus.
 
   // set M Exception Program Counter to main, for mret.
   // requires gcc -mcmodel=medany
