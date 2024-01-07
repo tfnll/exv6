@@ -147,6 +147,9 @@ panic(char *s)
     ;
 }
 
+/*
+ * Initialize the printf lock.
+ */
 void
 printfinit(void)
 {
