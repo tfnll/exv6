@@ -30,6 +30,9 @@
 #define ReadReg(reg) (*(Reg(reg)))
 #define WriteReg(reg, v) (*(Reg(reg)) = (v))
 
+/*
+ * Initialize the UART device.
+ */
 void
 uartinit(void)
 {

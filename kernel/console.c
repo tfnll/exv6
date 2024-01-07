@@ -185,6 +185,9 @@ consoleintr(int c)
   release(&cons.lock);
 }
 
+/*
+ * Initialize the console.
+ */
 void
 consoleinit(void)
 {
